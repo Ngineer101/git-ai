@@ -395,6 +395,53 @@ impl TestRepo {
         }
     }
 
+    pub fn git_ai_from_working_dir(
+        &self,
+        working_dir: &std::path::Path,
+        args: &[&str],
+    ) -> Result<String, String> {
+        let binary_path = get_binary_path();
+
+        let mut command = Command::new(binary_path);
+
+        let absolute_working_dir = working_dir.canonicalize().map_err(|e| {
+            format!(
+                "Failed to canonicalize working directory {}: {}",
+                working_dir.display(),
+                e
+            )
+        })?;
+        command.args(args).current_dir(&absolute_working_dir);
+
+        if let Some(patch) = &self.config_patch
+            && let Ok(patch_json) = serde_json::to_string(patch)
+        {
+            command.env("GIT_AI_TEST_CONFIG_PATCH", patch_json);
+        }
+
+        command.env("GIT_AI_TEST_DB_PATH", self.test_db_path.to_str().unwrap());
+
+        let output = command
+            .output()
+            .unwrap_or_else(|_| panic!("Failed to execute git-ai command: {:?}", args));
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+        if output.status.success() {
+            let combined = if stdout.is_empty() {
+                stderr
+            } else if stderr.is_empty() {
+                stdout
+            } else {
+                format!("{}{}", stdout, stderr)
+            };
+            Ok(combined)
+        } else {
+            Err(stderr)
+        }
+    }
+
     pub fn git_ai_with_env(&self, args: &[&str], envs: &[(&str, &str)]) -> Result<String, String> {
         let binary_path = get_binary_path();
 
@@ -616,17 +663,23 @@ static COMPILED_BINARY: OnceLock<PathBuf> = OnceLock::new();
 static DEFAULT_BRANCH_NAME: OnceLock<String> = OnceLock::new();
 
 fn get_default_branch_name() -> String {
-    let output = Command::new("git")
-        .args(["config", "--global", "init.defaultBranch"])
-        .output()
-        .expect("Failed to execute git config command");
+    // Use git2 to read the config directly, just like Repository::init() does
+    // This ensures consistency between what default_branchname() returns and what
+    // branch name git2::Repository::init() actually creates
+    use git2::Config;
 
-    if output.status.success() {
-        String::from_utf8_lossy(&output.stdout).trim().to_string()
-    } else {
-        // Fallback to "master" if not configured
-        "master".to_string()
+    // Open the global git config
+    if let Ok(config) = Config::open_default() {
+        if let Ok(branch_name) = config.get_string("init.defaultBranch") {
+            if !branch_name.is_empty() {
+                return branch_name;
+            }
+        }
     }
+
+    // Fallback to "master" if not configured
+    // This matches libgit2's default behavior
+    "master".to_string()
 }
 
 pub fn default_branchname() -> &'static str {
