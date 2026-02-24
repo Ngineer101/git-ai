@@ -390,6 +390,7 @@ mod tests {
             head_sha: "def456".to_string(),
             base_ref: "main".to_string(),
             base_sha: "ghi789".to_string(),
+            fork_clone_url: None,
         };
 
         let debug_str = format!("{:?}", event);
@@ -426,6 +427,7 @@ mod tests {
             head_sha: "def".to_string(),
             base_ref: "main".to_string(),
             base_sha: "ghi".to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext::with_repository(repo, event);
@@ -445,6 +447,7 @@ mod tests {
             head_sha: "def".to_string(),
             base_ref: "main".to_string(),
             base_sha: "ghi".to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext::with_repository(repo, event);
@@ -470,6 +473,7 @@ mod tests {
             head_sha: "def".to_string(),
             base_ref: "main".to_string(),
             base_sha: "ghi".to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext {
@@ -543,6 +547,7 @@ mod tests {
             head_sha: commit3.to_string(),
             base_ref: "main".to_string(),
             base_sha: commit1.to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext::with_repository(gitai_repo, event);
@@ -584,6 +589,7 @@ mod tests {
             head_sha: commit.to_string(),
             base_ref: "main".to_string(),
             base_sha: "base".to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext::with_repository(gitai_repo, event);
@@ -607,6 +613,7 @@ mod tests {
             head_sha: "def".to_string(),
             base_ref: "main".to_string(),
             base_sha: "ghi".to_string(),
+            fork_clone_url: None,
         };
 
         let context = CiContext::with_repository(repo, event);
